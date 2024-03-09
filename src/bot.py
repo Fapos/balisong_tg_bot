@@ -2,9 +2,11 @@ import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher
-from config_data.config import Config, load_config
+from config_data.config import Config, load_config, bot, dp
 from handlers import other_handlers, user_handlers, buttons_handlers, emails_handlers, video_handlers
 from cache.redis_cache import redis_init
+from src.handlers import audio_handlers
+
 # Инициализируем логгер
 logger = logging.getLogger(__name__)
 
@@ -23,10 +25,7 @@ async def main():
     # Загружаем конфиг в переменную config
     config: Config = load_config('.env')
 
-    # Инициализируем бот и диспетчер
-    bot = Bot(token=config.tg_bot.token,
-              parse_mode='HTML')
-    dp = Dispatcher()
+
 
     # # Настраиваем главное меню бота
     # await set_main_menu(bot)
@@ -36,7 +35,8 @@ async def main():
     dp.include_router(buttons_handlers.router)
     dp.include_router(emails_handlers.router)
     dp.include_router(video_handlers.router)
-    # dp.include_router(other_handlers.router)
+    dp.include_router(audio_handlers.router)
+    dp.include_router(other_handlers.router)
 
     # Пропускаем накопившиеся апдейты и запускаем polling
     await redis_init()

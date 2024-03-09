@@ -14,6 +14,8 @@ class OperationStates(Enum):
     emails_preset_emails_not_exists: int = 209
     emails_smtp_added: int = 210
     emails_smtp_not_exists: int = 211
+    audio_added: int = 212
+    audio_exists: int = 213
 
     something_wrong: int = 299
 
@@ -36,6 +38,9 @@ class EmailsStates(StatesGroup):
     emails_presets_add_emails = State()
     emails_smtp_add_email = State()
     emails_smtp_add_password = State()
+    emails_on_notify = State()
+    emails_on_notify_select_preset = State()
+    emails_on_notify_start = State()
 
 
 class EmailsPaginationStates(StatesGroup):
@@ -105,6 +110,8 @@ EMAILS_CANCEL_BUTTON_STATES = [
     EmailsStates.emails_add_email_state,
     EmailsStates.emails_smtp_add_email,
     EmailsStates.emails_smtp_add_password,
+    EmailsStates.emails_on_notify,
+    EmailsStates.emails_on_notify_select_preset,
 ]
 
 VIDEO_CANCEL_BUTTON_STATES = [

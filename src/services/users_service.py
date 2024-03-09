@@ -29,6 +29,7 @@ def on_user_join(event: ChatMemberUpdated):
             user.name = event.from_user.full_name
             session.commit()
 
+
         Path(f'trashbox/{event.from_user.id}/creds').mkdir(exist_ok=True, parents=True)
         Path(f'trashbox/{event.from_user.id}/audios').mkdir(exist_ok=True, parents=True)
         Path(f'trashbox/{event.from_user.id}/video').mkdir(exist_ok=True, parents=True)

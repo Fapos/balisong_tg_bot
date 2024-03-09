@@ -1,5 +1,13 @@
+import base64
 import math
+import mimetypes
+import os
+from email import encoders
+from email.message import EmailMessage
 from email.mime.application import MIMEApplication
+from email.mime.audio import MIMEAudio
+from email.mime.base import MIMEBase
+from io import BytesIO
 from os.path import basename
 
 import psycopg2
@@ -29,15 +37,19 @@ async def send_mail_async(ctx, preset_id: int, files: list):
                 select(EmailsPresets.message_title)
                 .where(EmailsPresets.id == preset_id)
             )
-            _subject = _data.scalars().one()
+            _subject = str(_data.scalars().one())
 
             _data = session.execute(
                 select(EmailsPresets.message_text)
                 .where(EmailsPresets.id == preset_id)
             )
-            _text = _data.scalars().one()
+            _text = str(_data.scalars().one())
 
         except sqlalchemy.exc.NoResultFound:
+            _subject = None
+            _text = None
+
+        if not (_subject or _text):
             return OperationStates.emails_preset_not_exists
 
         try:
@@ -46,8 +58,11 @@ async def send_mail_async(ctx, preset_id: int, files: list):
                 .join(EmailsList)
                 .where(EmailsList.preset_id == preset_id)
             )
-            _emails = _data.scalars().all()
+            _emails = list(_data.scalars().all())
         except sqlalchemy.exc.NoResultFound:
+            _emails = None
+
+        if not _emails:
             return OperationStates.emails_preset_emails_not_exists
 
         try:
@@ -55,16 +70,21 @@ async def send_mail_async(ctx, preset_id: int, files: list):
                 select(EmailsSMTP.email)
                 .where(EmailsSMTP.user_id == _user_id)
             )
-            _sender = _data.scalars().one()
+            _sender = str(_data.scalars().one())
 
             _data = session.execute(
                 select(EmailsSMTP.password)
                 .where(EmailsSMTP.user_id == _user_id)
             )
-            _password = _data.scalars().one()
+            _password = str(_data.scalars().one())
         except sqlalchemy.exc.NoResultFound:
+            _sender = None
+            _password = None
+
+        if not (_sender or _password):
             return OperationStates.emails_smtp_not_exists
 
+    print(type(_subject), type(_text), type(_emails), type(_sender), _password)
     mail_params = {'TLS': True, 'host': 'smtp.gmail.com', 'password': _password,
                    'user': _sender, 'port': 587}
 
@@ -75,15 +95,39 @@ async def send_mail_async(ctx, preset_id: int, files: list):
     msg['From'] = _sender
 
     msg.attach(MIMEText(_text, text_type, 'utf-8'))
-    for f in files or []:
-        with open(Path(f'./trashbox/{_user_id}/audios/' + f), "rb") as fil:
-            part = MIMEApplication(
-                fil.read(),
-                Name=basename(f)
-            )
-        # After the file is closed
-        part['Content-Disposition'] = 'attachment; filename="%s"' % basename(f)
-        msg.attach(part)
+    # for filename in os.listdir(f'./trashbox/{_user_id}/audios/'):
+    #     path = os.path.join(f'./trashbox/{_user_id}/audios/', filename)
+    #     print(path)
+    #     if not os.path.isfile(path):
+    #         continue
+    #     # Guess the content type based on the file's extension.  Encoding
+    #     # will be ignored, although we should check for simple things like
+    #     # gzip'd or compressed files.
+    #     ctype, encoding = mimetypes.guess_type(path)
+    #     if ctype is None or encoding is not None:
+    #         # No guess could be made, or the file is encoded (compressed), so
+    #         # use a generic bag-of-bits type.
+    #         ctype = 'application/octet-stream'
+    #     maintype, subtype = ctype.split('/', 1)
+    #     with open(path, 'rb') as fp:
+    #         msg.add_attachment(fp.read(),
+    #                            maintype=maintype,
+    #                            subtype=subtype,
+    #                            filename=filename)
+
+    # for f in files or []:
+    #     ctype, encoding = mimetypes.guess_type(Path(f'./trashbox/{_user_id}/audios/' + f))
+    #     if ctype is None or encoding is not None:
+    #         # No guess could be made, or the file is encoded (compressed), so
+    #         # use a generic bag-of-bits type.
+    #         ctype = 'application/octet-stream'
+    #     maintype, subtype = ctype.split('/', 1)
+    #     msg.add_attachment(
+    #         Path(f'./trashbox/{_user_id}/audios/' + f).read_bytes(),
+    #         maintype=maintype,
+    #         subtype=subtype,
+    #         filename=f,
+    #     )
 
     # Contact SMTP server and send Message
     host = mail_params.get('host', 'localhost')
@@ -102,7 +146,7 @@ async def send_mail_async(ctx, preset_id: int, files: list):
     if 'user' in mail_params:
         await smtp.login(mail_params['user'], mail_params['password'])
     for email in _emails:
-        msg['To'] = email
+        msg['To'] = email.strip()
         await smtp.send_message(msg)
         await smtp.quit()
 
@@ -124,8 +168,8 @@ async def main():
     await asyncio.gather(co1, co2)
 
 
-if __name__ == '__main__':
-    asyncio.run(main())
+# if __name__ == '__main__':
+#     asyncio.run(main())
 
 
 async def get_current_smtp_settings(ctx: CallbackQuery):

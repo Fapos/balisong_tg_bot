@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+import aioredis
 import psycopg2.errors
 import sqlalchemy.exc
 from aiogram import Router
@@ -37,6 +38,7 @@ async def process_start_command(ctx: Message, state: FSMContext):
     :param state:
     :return:
     """
+
     with Session(engine) as session:
         new_user = Users(
             tid=ctx.from_user.id,

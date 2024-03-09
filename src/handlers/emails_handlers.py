@@ -1,5 +1,6 @@
 import json
 import logging
+from types import NoneType
 
 import aioredis
 from datetime import datetime
@@ -13,8 +14,9 @@ from src.lexicon.lexicon_ru import LEXICON_RU
 
 from src.keyboards.menu_buttons import (
     email_menu_default, email_list_menu_default, cancel_menu, email_presets_menu_default,
-    email_preset_settings_menu_default, back_menu,
+    email_preset_settings_menu_default, back_menu, email_on_notify_audios, email_on_notify_start,
 )
+from src.services.audio_service import get_audio_list
 
 from src.states.states import (
     MenuStates, EmailsStates,
@@ -23,7 +25,8 @@ from src.states.states import (
 
 from src.services.emails_service import add_target_email, get_emails_list, OperationStates, get_emails_presets_list, \
     add_new_preset, get_current_preset_message_title, add_message_title, get_current_preset_message_text, \
-    add_message_text, add_preset_emails, get_current_preset_emails, get_current_smtp_settings, set_current_smtp_settings
+    add_message_text, add_preset_emails, get_current_preset_emails, get_current_smtp_settings, \
+    set_current_smtp_settings, send_mail_async
 
 router = Router()
 
@@ -250,7 +253,7 @@ async def process_emails_add_preset(ctx: Message, state: FSMContext):
 
 
 @router.callback_query(F.data == 'emails_email_presets_btn')
-async def process_emails_email_presets_show(ctx: Union[CallbackQuery, Message], state: FSMContext):
+async def process_emails_presets_show(ctx: Union[CallbackQuery, Message], state: FSMContext):
     _presets = await get_emails_presets_list(ctx)
     await state.set_state(EmailsStates.emails_presets_state)
     keyboard = create_keyboard_from_dict(_presets, 'emails_presets_id', email_presets_menu_default)
@@ -263,7 +266,7 @@ async def process_emails_email_presets_show(ctx: Union[CallbackQuery, Message], 
 
 
 @router.callback_query(F.data.startswith('emails_presets_id'))
-async def process_emails_email_presets_settings_show(ctx: CallbackQuery, state: FSMContext):
+async def process_emails_presets_settings_show(ctx: CallbackQuery, state: FSMContext):
     await state.set_state(EmailsStates.emails_presets_settings_state)
     keyboard = create_keyboard(*email_preset_settings_menu_default)
     redis = await aioredis.from_url('redis://127.0.0.1', db=0)
@@ -280,7 +283,7 @@ async def process_emails_email_presets_settings_show(ctx: CallbackQuery, state: 
 
 
 @router.callback_query(F.data == 'emails_preset_add_message_title_btn')
-async def process_emails_add_message_title_query(ctx: CallbackQuery, state: FSMContext):
+async def process_emails_preset_add_message_title_query(ctx: CallbackQuery, state: FSMContext):
     keyboard = create_keyboard(*cancel_menu)
     await state.set_state(EmailsStates.emails_presets_add_title)
     redis = await aioredis.from_url('redis://127.0.0.1', db=0)
@@ -300,7 +303,7 @@ async def process_emails_add_message_title_query(ctx: CallbackQuery, state: FSMC
 
 
 @router.message(StateFilter(EmailsStates.emails_presets_add_title))
-async def process_emails_add_message_title(ctx: Message, state: FSMContext):
+async def process_emails_preset_add_message_title(ctx: Message, state: FSMContext):
     if isinstance(ctx.text, str):
         keyboard = create_keyboard(*email_preset_settings_menu_default)
         redis = await aioredis.from_url('redis://127.0.0.1', db=0)
@@ -325,7 +328,7 @@ async def process_emails_add_message_title(ctx: Message, state: FSMContext):
 
 
 @router.callback_query(F.data == 'emails_preset_add_message_text_btn')
-async def process_emails_add_message_text_query(ctx: CallbackQuery, state: FSMContext):
+async def process_emails_preset_add_message_text_query(ctx: CallbackQuery, state: FSMContext):
     keyboard = create_keyboard(*cancel_menu)
     await state.set_state(EmailsStates.emails_presets_add_text)
     redis = await aioredis.from_url('redis://127.0.0.1', db=0)
@@ -345,7 +348,7 @@ async def process_emails_add_message_text_query(ctx: CallbackQuery, state: FSMCo
 
 
 @router.message(StateFilter(EmailsStates.emails_presets_add_text))
-async def process_emails_add_message_text(ctx: Message, state: FSMContext):
+async def process_emails_preset_add_message_text(ctx: Message, state: FSMContext):
     if isinstance(ctx.text, str):
         keyboard = create_keyboard(*email_preset_settings_menu_default)
         redis = await aioredis.from_url('redis://127.0.0.1', db=0)
@@ -370,9 +373,7 @@ async def process_emails_add_message_text(ctx: Message, state: FSMContext):
 
 
 @router.callback_query(F.data == 'emails_preset_add_emails_btn')
-async def process_emails_add_emails_query(ctx: CallbackQuery, state: FSMContext):
-    # TODO: Реализовать хендлер выбора почт для рассылки. Сделать пагинационный список кнопок с почтами
-    # TODO: и возможность загрузить список почт в пресет
+async def process_emails_preset_add_emails_query(ctx: CallbackQuery, state: FSMContext):
     keyboard = create_keyboard(*cancel_menu)
     await state.set_state(EmailsStates.emails_presets_add_emails)
     redis = await aioredis.from_url('redis://127.0.0.1', db=0)
@@ -465,7 +466,7 @@ async def process_emails_add_emails(ctx: Message, state: FSMContext):
             result = await add_preset_emails(ctx, preset_id)
             if result == OperationStates.emails_preset_emails_added:
                 await ctx.answer(
-                    text=LEXICON_RU['emails_preset_message_added_label'],
+                    text=LEXICON_RU['emails_preset_emails_added_label'],
                 )
         except Exception as exc:
             logging.error('[add_email_preset_emails] Something wrong', exc_info=exc)
@@ -479,17 +480,6 @@ async def process_emails_add_emails(ctx: Message, state: FSMContext):
         )
 
 
-@router.callback_query(F.data == 'emails_preset_add_emails_btn')
-async def process_emails_select_file(ctx: CallbackQuery, state: FSMContext):
-    # TODO: Реализовать хендлер отвечающий за выбор аудиофайла для рассылки
-    # Выгрузить список добавленных аудиозаписей
-
-    # Из списка сделать кнопки для выбора активного файла
-
-    # Добавить название активного файла в БД
-    ...
-
-
 @router.callback_query(F.data == 'emails_on_notify_btn')
 async def process_emails_on_notify(ctx: CallbackQuery, state: FSMContext):
     """
@@ -499,21 +489,199 @@ async def process_emails_on_notify(ctx: CallbackQuery, state: FSMContext):
     :param state:
     :return:
     """
-    # TODO: Реализовать хендлер для активации рассылки
-    # Проверка наличия в кеше списка почт
+    _smtp_settings = await get_current_smtp_settings(ctx)
+    if not _smtp_settings:
+        await ctx.message.edit_text(
+            text=LEXICON_RU['emails_smtp_none_label'],
+            inline_message_id=ctx.id,
+        )
+        keyboard = create_keyboard(*email_menu_default)
+        await ctx.message.answer(
+            text=LEXICON_RU['emails_title'],
+            reply_markup=keyboard,
+        )
+        return
 
-    # Выгрузить список почт по необходимости
+    _audios = await get_audio_list(ctx)
+    if isinstance(_audios, dict):
+        redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+        await redis.set(f'{ctx.from_user.id}_audios_list', str(_audios))
+        await redis.delete(f'{ctx.from_user.id}_checked_audios_list')
+        await redis.close()
+        await state.set_state(EmailsStates.emails_on_notify)
+        keyboard = create_keyboard_from_dict(_audios, 'emails_audios_id', email_on_notify_audios)
 
-    # Выгрузить тему и текст сообщения, название активного файла
+        await ctx.message.edit_text(
+            text=LEXICON_RU['emails_audios_list_label'],
+            inline_message_id=ctx.id,
+            reply_markup=keyboard,
+        )
+    else:
+        keyboard = create_keyboard(*email_menu_default)
+        await ctx.message.edit_text(
+            text=LEXICON_RU['emails_audios_list_empty_label'],
+            inline_message_id=ctx.id,
+            reply_markup=keyboard,
+        )
 
-    # Для каждой почты: провалидировать, вызвать send_mail_async и добавить в gather
 
-    # Вывести на экран сообщение: Сообщения отправлены,
-    # посмотреть результат можно в отправленных, на сайте той почты, которую вы используете
-    keyboard = create_keyboard(*cancel_menu)
-    await state.set_state(EmailsStates.emails_settings_state)
+@router.callback_query(F.data.startswith('emails_audios_id'))
+async def process_emails_audios_generate_list(ctx: CallbackQuery, state: FSMContext):
+    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    _audio_list = bytes.decode(await redis.get(f'{ctx.from_user.id}_audios_list'), encoding='utf-8')
+    _modded_audio_list = _audio_list.replace('\'', '"')
+    _audios = json.loads(_modded_audio_list)
+    _checked_raw = await redis.get(f'{ctx.from_user.id}_checked_audios_list')
+    if not isinstance(_checked_raw, NoneType):
+        _checked_audios_list = bytes.decode(_checked_raw, encoding='utf-8')
+        _modded_checked_audio_list = _checked_audios_list.replace('\'', '"')
+        _checked_audios = json.loads(_modded_checked_audio_list)
+    else:
+        _checked_audios = {}
+
+    if ctx.data.split(':')[1] in _checked_audios:
+        _audios[ctx.data.split(':')[1]] = ctx.data.split(':')[2].replace('+ ', '')
+        _checked_audios.pop(ctx.data.split(':')[1])
+    else:
+        _audios[ctx.data.split(':')[1]] = '+ ' + ctx.data.split(':')[2]
+        _checked_audios[ctx.data.split(':')[1]] = ctx.data.split(':')[2]
+
+    # Продолжить добавление
+    await redis.set(f'{ctx.from_user.id}_audios_list', str(_audios))
+    await redis.set(f'{ctx.from_user.id}_checked_audios_list', str(_checked_audios))
+    keyboard = create_keyboard_from_dict(_audios, 'emails_audios_id', email_on_notify_audios)
+
+    await redis.set(f'{ctx.from_user.id}_current_email_preset_name', ctx.data.split(":")[2])
+    await redis.close()
+
     await ctx.message.edit_text(
-        text=LEXICON_RU['emails_settings_label'],
+        text=LEXICON_RU['emails_audios_selected_label'] + '\n' + '\n'.join(_checked_audios.values()),
+        inline_message_id=ctx.id,
+        reply_markup=keyboard,
+    )
+
+
+@router.callback_query(F.data == 'accept_btn')
+async def process_emails_on_notify_select_preset_query(ctx: CallbackQuery, state: FSMContext):
+    """
+    Хендлер нажатия кнопки Применить в рассылке.
+
+    :param ctx:
+    :param state:
+    :return:
+    """
+    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    _checked_raw = await redis.get(f'{ctx.from_user.id}_checked_audios_list')
+    if isinstance(_checked_raw, NoneType):
+        await ctx.answer(LEXICON_RU['emails_audios_selected_empty_label'])
+        return
+
+    await state.set_state(EmailsStates.emails_on_notify_select_preset)
+    print(await state.get_state())
+    _presets = await get_emails_presets_list(ctx)
+    if isinstance(_presets, dict) and _presets:
+        keyboard = create_keyboard_from_dict(_presets, 'emails_notify_preset_id', cancel_menu)
+
+        await ctx.message.edit_text(
+            text=LEXICON_RU['emails_preset_list_label'],
+            inline_message_id=ctx.id,
+            reply_markup=keyboard,
+        )
+    else:
+        keyboard = create_keyboard(*cancel_menu)
+        await ctx.message.edit_text(
+            text=LEXICON_RU['emails_preset_list_empty_label'],
+            inline_message_id=ctx.id,
+            reply_markup=keyboard,
+        )
+
+
+@router.callback_query(F.data.startswith('emails_notify_preset_id'))
+async def process_emails_audios_generate_list(ctx: CallbackQuery, state: FSMContext):
+    await state.set_state(EmailsStates.emails_on_notify)
+    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    _audio_list = bytes.decode(await redis.get(f'{ctx.from_user.id}_audios_list'), encoding='utf-8')
+    _modded_audio_list = _audio_list.replace('\'', '"')
+    _audios = json.loads(_modded_audio_list)
+    _checked_raw = await redis.get(f'{ctx.from_user.id}_checked_audios_list')
+    if not isinstance(_checked_raw, NoneType):
+        _checked_audios_list = bytes.decode(_checked_raw, encoding='utf-8')
+        _modded_checked_audio_list = _checked_audios_list.replace('\'', '"')
+        _checked_audios = json.loads(_modded_checked_audio_list)
+    else:
+        _checked_audios = {}
+
+    keyboard = create_keyboard(*email_on_notify_start)
+
+    await redis.set(f'{ctx.from_user.id}_current_email_preset_id', ctx.data.split(":")[1])
+    await redis.close()
+
+    _message = (
+        LEXICON_RU['emails_notify_on_label']
+        .replace('%PRESET_NAME%', ctx.data.split(':')[2])
+        .replace('%FILE_LIST%', '\n'.join(_checked_audios.values()))
+    )
+    await ctx.message.edit_text(
+        text=_message,
+        inline_message_id=ctx.id,
+        reply_markup=keyboard,
+    )
+
+
+@router.callback_query(F.data == 'start_notify_btn')
+async def process_emails_on_notify_start(ctx: CallbackQuery, state: FSMContext):
+    """
+    Хендлер нажатия кнопки Применить в рассылке.
+
+    :param ctx:
+    :param state:
+    :return:
+    """
+    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    _checked_raw = await redis.get(f'{ctx.from_user.id}_checked_audios_list')
+    if not isinstance(_checked_raw, NoneType):
+        _checked_audios_list = bytes.decode(_checked_raw, encoding='utf-8')
+        _modded_checked_audio_list = _checked_audios_list.replace('\'', '"')
+        _checked_audios = json.loads(_modded_checked_audio_list)
+    else:
+        _checked_audios = {}
+
+    _preset = await redis.get(f'{ctx.from_user.id}_current_email_preset_id')
+    try:
+        print(list(_checked_audios.values()))
+        result = await send_mail_async(ctx, int(_preset), list(_checked_audios.values()))
+        print(result)
+
+        if result:
+            if result == OperationStates.emails_preset_emails_not_exists:
+                await ctx.message.answer(
+                    text=LEXICON_RU['emails_preset_email_list_empty_label'],
+                )
+            if result == OperationStates.emails_preset_not_exists:
+                await ctx.message.answer(
+                    text=LEXICON_RU['emails_preset_not_setting_label'],
+                )
+            keyboard = create_keyboard(*email_menu_default)
+            await ctx.message.answer(
+                text=LEXICON_RU['emails_title'],
+                inline_message_id=ctx.id,
+                reply_markup=keyboard,
+            )
+            return
+
+        await ctx.message.answer(
+            text=LEXICON_RU['emails_notify_on_start'],
+        )
+
+    except Exception as exc:
+        logging.error('[on_notify] Something wrong', exc_info=exc)
+        await ctx.message.answer(
+            text=LEXICON_RU['some_error_label'],
+        )
+
+    keyboard = create_keyboard(*email_menu_default)
+    await ctx.message.answer(
+        text=LEXICON_RU['emails_title'],
         inline_message_id=ctx.id,
         reply_markup=keyboard,
     )

@@ -1,4 +1,8 @@
+import json
 from dataclasses import dataclass
+from pathlib import Path
+
+from aiogram import Bot, Dispatcher
 from environs import Env
 
 
@@ -42,3 +46,8 @@ def load_config(path: str | None = None) -> Config:
 
 
 config = load_config('.env')
+config_ex = json.loads(Path('config.json').read_text(encoding='utf-8'))
+# Инициализируем бот и диспетчер
+bot = Bot(token=config.tg_bot.token,
+          parse_mode='HTML')
+dp = Dispatcher()

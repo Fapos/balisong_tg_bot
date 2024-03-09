@@ -20,6 +20,16 @@ email_menu_default = [
     'back_btn',
 ]
 
+email_on_notify_audios = [
+    'accept_btn',
+    'cancel_btn',
+]
+
+email_on_notify_start = [
+    'start_notify_btn',
+    'cancel_btn',
+]
+
 email_presets_menu_default = [
     'emails_preset_add_preset_btn',
     'back_btn',

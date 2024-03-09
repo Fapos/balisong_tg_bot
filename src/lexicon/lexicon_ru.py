@@ -1,6 +1,6 @@
 LEXICON_RU = {
     'main_menu_title': 'Добро пожаловать, выберете нужное действие:',
-
+    'not_implemented': 'Данный функционал еще в разработке',
     'pagination_next_btn': '>>',
     'pagination_prev_btn': '<<',
 
@@ -41,6 +41,16 @@ LEXICON_RU = {
     'emails_add_successful_label': 'Адрес электронной почты успешно добавлен.',
     'emails_already_exists_label': 'Адрес электронной почты уже в списке добавленных.',
     'emails_list_label': 'Список добавленных почт:',
+    'emails_audios_list_label': 'Выберите аудиозаписи, которые хотите отправить:',
+    'emails_audios_list_empty_label': 'Загруженные аудиозаписи не найдены. Загрузите хотя бы один файл для активации рассылки.',
+    'emails_audios_selected_label': 'Выбранные аудиофайлы:',
+    'emails_audios_selected_empty_label': 'Вы не выбрали ни одного файла, для продолжения выберите хотя бы один.',
+    'emails_preset_list_label': 'Выберите пресет:',
+    'emails_preset_list_empty_label': 'Список пресетов пуст. Создайте хотя бы один пресет для активации рассылки.',
+    'emails_preset_email_list_empty_label': 'Список почт в пресете пуст. Добавьте хотя бы одну почту в пресет для активации рассылки.',
+    'emails_preset_not_setting_label': 'Выбранный пресет не настроен, настройте пресет для активации рассылки.',
+    'emails_notify_on_label': 'Начать рассылку?\nВыбранный пресет:%PRESET_NAME%\nВыбранные аудиофайлы:\n%FILE_LIST%',
+    'emails_notify_on_start': 'Рассылка запущена, результат можно посмотреть в личном кабинете Google почты, на странице отправленные.',
     'emails_list_empty_label': 'Список почт пуст.',
     'emails_smtp_curr_label': 'Текущий SMTP профиль:',
     'emails_smtp_none_label': 'Данные Google SMTP не добавлены.',
@@ -56,6 +66,7 @@ LEXICON_RU = {
     'emails_list_btn': 'Показать список добавленных почт',
     'emails_settings_btn': 'Настройки',
     'emails_set_smtp_settings_btn': 'Настройки SMTP',
+    'start_notify_btn': 'Запуск',
 
     # Кнопки подменю пресетов почты
     'some_error_label': 'Что-то пошло не так. Повторите попытку позже...',
@@ -80,8 +91,13 @@ LEXICON_RU = {
     'emails_preset_add_message_text_btn': 'Текст сообщения',
     'emails_preset_add_emails_btn': 'Добавить почты в рассылку',
 
-    # Кнопки подменю аудио
+    # Описание и ответы меню аудио
     'audio_title': '<b>УПРАВЛЕНИЕ АУДИОФАЙЛАМИ</b>',
+    'audio_add_audiofile_label': 'Отправьте аудиофайл:',
+    'audio_add_audiofile_successful_label': 'Файл успешно загружен.',
+    'audio_add_audiofile_already_exists_label': 'Файл с таким именем уже существует.',
+    # Кнопки подменю аудио
+
     'audio_add_audiofile_btn': 'Добавить файл',
     'audio_settings_btn': 'Настройки',
 
