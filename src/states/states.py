@@ -66,6 +66,11 @@ class MenuStates(StatesGroup):
     emails_menu_state = State()
     audio_menu_state = State()
     video_menu_state = State()
+    tutor_menu_state = State()
+
+
+class TutorialsStates(StatesGroup):
+    tutorial_general_state = State()
 
 
 class ApplyStates(StatesGroup):
@@ -79,6 +84,7 @@ MAIN_MENU_BACK_BUTTON_STATES = [
     MenuStates.emails_menu_state,
     MenuStates.audio_menu_state,
     MenuStates.video_menu_state,
+    MenuStates.tutor_menu_state,
 ]
 
 

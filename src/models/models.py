@@ -24,7 +24,7 @@ class Users(Base):
     tid: Mapped[int] = mapped_column(unique=True, nullable=False)
     username: Mapped[str] = mapped_column(String(30), nullable=False)
     name: Mapped[str] = mapped_column(String(30))
-    premium: Mapped[bool]
+    premium_type: Mapped[int] = mapped_column(nullable=False)
 
     emails_users_related: Mapped[list['Emails']] = relationship(
         back_populates='users_emails_related',
@@ -124,7 +124,7 @@ class EmailsMatching(Base):
 class Audios(Base):
     __tablename__ = 'audios'
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.tid"))
     name: Mapped[str] = mapped_column(String(50), nullable=False)
 
     users_related: Mapped[list['Users']] = relationship('Users')

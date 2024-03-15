@@ -20,8 +20,8 @@ async def process_generate_and_upload_video(callback: CallbackQuery, state: FSMC
     :param state:
     :return:
     """
-    _url = create_session(callback.from_user.id)
-    keyboard = create_web_app_keyboard('auth_btn', 'Авторизация', _url)
+    buttons = {'video_auth_btn': create_session(callback.from_user.id)}
+    keyboard = create_web_app_keyboard(buttons)
     await state.set_state(VideoStates.video_authorization_state)
     await callback.message.edit_text(
         text='Авторизация',

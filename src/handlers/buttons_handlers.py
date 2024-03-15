@@ -1,14 +1,19 @@
+import json
+
 import aioredis
 from aiogram import F, Router
 from aiogram.types import CallbackQuery
 from aiogram.fsm.context import FSMContext
-from src.keyboards.main_menu import create_keyboard, create_keyboard_from_dict
+
+from src.config_data.config import config_ex
+from src.keyboards.main_menu import create_keyboard, create_keyboard_from_dict, create_web_app_keyboard
 from src.lexicon.lexicon_ru import LEXICON_RU
 
 from src.keyboards.menu_buttons import (
     main_menu_default, profile_menu_default,
     email_menu_default, audio_menu_default,
     video_menu_default, cancel_menu, email_presets_menu_default, email_preset_settings_menu_default,
+    tutorials_menu_default,
 )
 from src.services.emails_service import get_emails_presets_list
 
@@ -179,6 +184,25 @@ async def process_main_menu_video_click(callback: CallbackQuery, state: FSMConte
     await state.set_state(MenuStates.video_menu_state)
     await callback.message.edit_text(
         text=LEXICON_RU['video_title'],
+        inline_message_id=callback.id,
+        reply_markup=keyboard,
+    )
+
+
+@router.callback_query(F.data == 'main_menu_tutors_btn')
+async def process_main_menu_tutors_click(callback: CallbackQuery, state: FSMContext):
+    """
+    Хендлер нажатия кнопки Как пользоваться ботом.
+
+    :param callback:
+    :param state:
+    :return:
+    """
+    buttons = config_ex['tutorial_links']
+    keyboard = create_web_app_keyboard(buttons)
+    await state.set_state(MenuStates.tutor_menu_state)
+    await callback.message.edit_text(
+        text=LEXICON_RU['tutors_menu_title'],
         inline_message_id=callback.id,
         reply_markup=keyboard,
     )

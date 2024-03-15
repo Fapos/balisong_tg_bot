@@ -4,6 +4,7 @@ main_menu_default = [
     'main_menu_emails_btn',
     'main_menu_audio_btn',
     'main_menu_video_btn',
+    'main_menu_tutors_btn',
 ]
 
 profile_menu_default = [
@@ -62,6 +63,11 @@ video_menu_default = [
     'video_generate_and_upload_video_btn',
     'video_settings_btn',
     'back_btn',
+]
+
+tutorials_menu_default = [
+    'tutors_general_btn',
+    'back_btn'
 ]
 
 cancel_menu = [

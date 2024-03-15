@@ -7,6 +7,7 @@ from email.message import EmailMessage
 from email.mime.application import MIMEApplication
 from email.mime.audio import MIMEAudio
 from email.mime.base import MIMEBase
+from email.utils import formatdate
 from io import BytesIO
 from os.path import basename
 
@@ -52,6 +53,8 @@ async def send_mail_async(ctx, preset_id: int, files: list):
         if not (_subject or _text):
             return OperationStates.emails_preset_not_exists
 
+        await asyncio.sleep(0)
+
         try:
             _data = session.execute(
                 select(Emails.email)
@@ -64,6 +67,8 @@ async def send_mail_async(ctx, preset_id: int, files: list):
 
         if not _emails:
             return OperationStates.emails_preset_emails_not_exists
+
+        await asyncio.sleep(0)
 
         try:
             _data = session.execute(
@@ -84,50 +89,34 @@ async def send_mail_async(ctx, preset_id: int, files: list):
         if not (_sender or _password):
             return OperationStates.emails_smtp_not_exists
 
-    print(type(_subject), type(_text), type(_emails), type(_sender), _password)
+        await asyncio.sleep(0)
+
+    print(_subject, _text, _emails, _sender, _password)
     mail_params = {'TLS': True, 'host': 'smtp.gmail.com', 'password': _password,
                    'user': _sender, 'port': 587}
 
     # Prepare Message
-    msg = MIMEMultipart()
-    msg.preamble = _subject
-    msg['Subject'] = _subject
+    msg = EmailMessage()
     msg['From'] = _sender
+    msg['Date'] = formatdate(localtime=True)
+    msg['Subject'] = _subject
 
-    msg.attach(MIMEText(_text, text_type, 'utf-8'))
-    # for filename in os.listdir(f'./trashbox/{_user_id}/audios/'):
-    #     path = os.path.join(f'./trashbox/{_user_id}/audios/', filename)
-    #     print(path)
-    #     if not os.path.isfile(path):
-    #         continue
-    #     # Guess the content type based on the file's extension.  Encoding
-    #     # will be ignored, although we should check for simple things like
-    #     # gzip'd or compressed files.
-    #     ctype, encoding = mimetypes.guess_type(path)
-    #     if ctype is None or encoding is not None:
-    #         # No guess could be made, or the file is encoded (compressed), so
-    #         # use a generic bag-of-bits type.
-    #         ctype = 'application/octet-stream'
-    #     maintype, subtype = ctype.split('/', 1)
-    #     with open(path, 'rb') as fp:
-    #         msg.add_attachment(fp.read(),
-    #                            maintype=maintype,
-    #                            subtype=subtype,
-    #                            filename=filename)
+    msg.set_content(_text)
 
-    # for f in files or []:
-    #     ctype, encoding = mimetypes.guess_type(Path(f'./trashbox/{_user_id}/audios/' + f))
-    #     if ctype is None or encoding is not None:
-    #         # No guess could be made, or the file is encoded (compressed), so
-    #         # use a generic bag-of-bits type.
-    #         ctype = 'application/octet-stream'
-    #     maintype, subtype = ctype.split('/', 1)
-    #     msg.add_attachment(
-    #         Path(f'./trashbox/{_user_id}/audios/' + f).read_bytes(),
-    #         maintype=maintype,
-    #         subtype=subtype,
-    #         filename=f,
-    #     )
+    for f in files or []:
+        ctype, encoding = mimetypes.guess_type(Path(f'./trashbox/{_user_id}/audios/' + f))
+        if ctype is None or encoding is not None:
+            # No guess could be made, or the file is encoded (compressed), so
+            # use a generic bag-of-bits type.
+            ctype = 'application/octet-stream'
+        maintype, subtype = ctype.split('/', 1)
+        msg.add_attachment(
+            Path(f'./trashbox/{_user_id}/audios/' + f).read_bytes(),
+            maintype=maintype,
+            subtype=subtype,
+            filename=f,
+        )
+        await asyncio.sleep(0)
 
     # Contact SMTP server and send Message
     host = mail_params.get('host', 'localhost')
@@ -140,15 +129,23 @@ async def send_mail_async(ctx, preset_id: int, files: list):
     # because we will explicitly be calling starttls ourselves when
     # isTLS is True:
     smtp = aiosmtplib.SMTP(hostname=host, port=port, start_tls=False, use_tls=is_ssl)
+    asyncio.create_task(
+        send_messages(smtp, is_tls, mail_params, _emails, _sender, msg, _user_id),
+        name=f'{_user_id}_send_messages',
+    )
+
+
+async def send_messages(smtp, is_tls, mail_params, _emails, _sender, msg, _user_id):
     await smtp.connect()
     if is_tls:
         await smtp.starttls()
     if 'user' in mail_params:
         await smtp.login(mail_params['user'], mail_params['password'])
+
     for email in _emails:
-        msg['To'] = email.strip()
-        await smtp.send_message(msg)
-        await smtp.quit()
+        await smtp.sendmail(_sender, [email], msg.as_string())
+
+    await smtp.quit()
 
 
 async def main():

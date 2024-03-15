@@ -10,6 +10,7 @@ LEXICON_RU = {
     'main_menu_emails_btn': 'Почты',
     'main_menu_audio_btn': 'Аудио',
     'main_menu_video_btn': 'Видео',
+    'main_menu_tutors_btn': 'Как пользоваться ботом?',
 
     # Кнопки управления меню
     'back_btn': 'Назад',
@@ -103,7 +104,15 @@ LEXICON_RU = {
 
     # Кнопки подменю видео
     'video_title': '<b>УПРАВЛЕНИЕ ВИДЕО</b>',
+    'video_auth_btn': 'Авторизация',
     'video_add_background_image_btn': 'Добавить фон',
     'video_generate_and_upload_video_btn': 'Загрузить на YouTube',
     'video_settings_btn': 'Настройки',
+
+
+    # Описание и ответы меню туторов
+    'tutors_menu_title': 'Выберите интересующую вас инструкцию:',
+
+    # Кнопки меню туторов
+    'tutors_general_btn': 'Начало работы с ботом',
 }

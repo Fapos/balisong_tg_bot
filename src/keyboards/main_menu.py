@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List, Dict
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -73,22 +73,25 @@ def create_keyboard_from_dict(
     return kb_builder.as_markup()
 
 
-def create_web_app_keyboard(button: str, text: str, _url: str) -> InlineKeyboardMarkup:
+def create_web_app_keyboard(buttons: Dict[str, str]) -> InlineKeyboardMarkup:
     # Инициализируем билдер
     kb_builder = InlineKeyboardBuilder()
     # Добавляем в билдер ряд с кнопками
-    web_app_info = WebAppInfo(url=_url)
+    for button in buttons:
+        web_app_info = WebAppInfo(url=buttons[button])
+        kb_builder.row(*[
+            InlineKeyboardButton(
+                text=LEXICON_RU[button],
+                web_app=web_app_info
+                )
+            ],
+           width=1,
+        )
     kb_builder.row(*[
         InlineKeyboardButton(
-            text=text,
-            web_app=web_app_info
-            ),
-        InlineKeyboardButton(
-            text=LEXICON_RU['cancel_btn'],
-            callback_data='cancel_btn'
+            text=LEXICON_RU['back_btn'],
+            callback_data='back_btn'
         )
-        ],
-       width=1,
-    )
+    ])
     # Возвращаем объект инлайн-клавиатуры
     return kb_builder.as_markup()

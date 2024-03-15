@@ -503,9 +503,11 @@ async def process_emails_on_notify(ctx: CallbackQuery, state: FSMContext):
         return
 
     _audios = await get_audio_list(ctx)
+    print(_audios)
     if isinstance(_audios, dict):
         redis = await aioredis.from_url('redis://127.0.0.1', db=0)
-        await redis.set(f'{ctx.from_user.id}_audios_list', str(_audios))
+        _json_dumps = json.dumps(_audios)
+        await redis.set(f'{ctx.from_user.id}_audios_list', _json_dumps)
         await redis.delete(f'{ctx.from_user.id}_checked_audios_list')
         await redis.close()
         await state.set_state(EmailsStates.emails_on_notify)
@@ -529,13 +531,11 @@ async def process_emails_on_notify(ctx: CallbackQuery, state: FSMContext):
 async def process_emails_audios_generate_list(ctx: CallbackQuery, state: FSMContext):
     redis = await aioredis.from_url('redis://127.0.0.1', db=0)
     _audio_list = bytes.decode(await redis.get(f'{ctx.from_user.id}_audios_list'), encoding='utf-8')
-    _modded_audio_list = _audio_list.replace('\'', '"')
-    _audios = json.loads(_modded_audio_list)
+    _audios = json.loads(_audio_list)
     _checked_raw = await redis.get(f'{ctx.from_user.id}_checked_audios_list')
     if not isinstance(_checked_raw, NoneType):
         _checked_audios_list = bytes.decode(_checked_raw, encoding='utf-8')
-        _modded_checked_audio_list = _checked_audios_list.replace('\'', '"')
-        _checked_audios = json.loads(_modded_checked_audio_list)
+        _checked_audios = json.loads(_checked_audios_list)
     else:
         _checked_audios = {}
 
@@ -547,8 +547,8 @@ async def process_emails_audios_generate_list(ctx: CallbackQuery, state: FSMCont
         _checked_audios[ctx.data.split(':')[1]] = ctx.data.split(':')[2]
 
     # Продолжить добавление
-    await redis.set(f'{ctx.from_user.id}_audios_list', str(_audios))
-    await redis.set(f'{ctx.from_user.id}_checked_audios_list', str(_checked_audios))
+    await redis.set(f'{ctx.from_user.id}_audios_list', json.dumps(_audios))
+    await redis.set(f'{ctx.from_user.id}_checked_audios_list', json.dumps(_checked_audios))
     keyboard = create_keyboard_from_dict(_audios, 'emails_audios_id', email_on_notify_audios)
 
     await redis.set(f'{ctx.from_user.id}_current_email_preset_name', ctx.data.split(":")[2])
@@ -601,13 +601,11 @@ async def process_emails_audios_generate_list(ctx: CallbackQuery, state: FSMCont
     await state.set_state(EmailsStates.emails_on_notify)
     redis = await aioredis.from_url('redis://127.0.0.1', db=0)
     _audio_list = bytes.decode(await redis.get(f'{ctx.from_user.id}_audios_list'), encoding='utf-8')
-    _modded_audio_list = _audio_list.replace('\'', '"')
-    _audios = json.loads(_modded_audio_list)
+    _audios = json.loads(_audio_list)
     _checked_raw = await redis.get(f'{ctx.from_user.id}_checked_audios_list')
     if not isinstance(_checked_raw, NoneType):
         _checked_audios_list = bytes.decode(_checked_raw, encoding='utf-8')
-        _modded_checked_audio_list = _checked_audios_list.replace('\'', '"')
-        _checked_audios = json.loads(_modded_checked_audio_list)
+        _checked_audios = json.loads(_checked_audios_list)
     else:
         _checked_audios = {}
 
@@ -641,8 +639,7 @@ async def process_emails_on_notify_start(ctx: CallbackQuery, state: FSMContext):
     _checked_raw = await redis.get(f'{ctx.from_user.id}_checked_audios_list')
     if not isinstance(_checked_raw, NoneType):
         _checked_audios_list = bytes.decode(_checked_raw, encoding='utf-8')
-        _modded_checked_audio_list = _checked_audios_list.replace('\'', '"')
-        _checked_audios = json.loads(_modded_checked_audio_list)
+        _checked_audios = json.loads(_checked_audios_list)
     else:
         _checked_audios = {}
 
