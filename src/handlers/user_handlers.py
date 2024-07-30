@@ -44,7 +44,7 @@ async def process_start_command(ctx: Message, state: FSMContext):
             tid=ctx.from_user.id,
             username=ctx.from_user.username,
             name=ctx.from_user.full_name,
-            premium=False,
+            premium_type=0,
         )
         try:
             session.add(new_user)

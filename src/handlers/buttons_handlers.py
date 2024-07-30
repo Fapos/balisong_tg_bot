@@ -33,7 +33,7 @@ async def process_back_click(ctx: CallbackQuery, state: FSMContext):
     """
     Хендлер нажатия кнопки Назад.
 
-    :param callback:
+    :param ctx:
     :param state:
     :return:
     """
@@ -118,91 +118,92 @@ async def process_cancel_click(ctx: CallbackQuery, state: FSMContext):
 
 
 @router.callback_query(F.data == 'main_menu_profile_btn')
-async def process_main_menu_profile_click(callback: CallbackQuery, state: FSMContext):
+async def process_main_menu_profile_click(ctx: CallbackQuery, state: FSMContext):
     """
     Хендлер нажатия кнопки Профиль.
 
-    :param callback:
+    :param ctx:
     :param state:
     :return:
     """
     keyboard = create_keyboard(*profile_menu_default)
     await state.set_state(MenuStates.profile_menu_state)
-    await callback.message.edit_text(
+    await ctx.message.edit_text(
         text=LEXICON_RU['profile_title'],
-        inline_message_id=callback.id,
+        inline_message_id=ctx.id,
         reply_markup=keyboard,
     )
+    await ctx.answer()
 
 
 @router.callback_query(F.data == 'main_menu_emails_btn')
-async def process_main_menu_emails_click(callback: CallbackQuery, state: FSMContext):
+async def process_main_menu_emails_click(ctx: CallbackQuery, state: FSMContext):
     """
     Хендлер нажатия кнопки Почты.
 
-    :param callback:
+    :param ctx:
     :param state:
     :return:
     """
     keyboard = create_keyboard(*email_menu_default)
     await state.set_state(MenuStates.emails_menu_state)
-    await callback.message.edit_text(
+    await ctx.message.edit_text(
         text=LEXICON_RU['emails_title'],
-        inline_message_id=callback.id,
+        inline_message_id=ctx.id,
         reply_markup=keyboard,
     )
 
 
 @router.callback_query(F.data == 'main_menu_audio_btn')
-async def process_main_menu_audio_click(callback: CallbackQuery, state: FSMContext):
+async def process_main_menu_audio_click(ctx: CallbackQuery, state: FSMContext):
     """
     Хендлер нажатия кнопки аудио.
 
-    :param callback:
+    :param ctx:
     :param state:
     :return:
     """
     keyboard = create_keyboard(*audio_menu_default)
     await state.set_state(MenuStates.audio_menu_state)
-    await callback.message.edit_text(
+    await ctx.message.edit_text(
         text=LEXICON_RU['audio_title'],
-        inline_message_id=callback.id,
+        inline_message_id=ctx.id,
         reply_markup=keyboard,
     )
 
 
 @router.callback_query(F.data == 'main_menu_video_btn')
-async def process_main_menu_video_click(callback: CallbackQuery, state: FSMContext):
+async def process_main_menu_video_click(ctx: CallbackQuery, state: FSMContext):
     """
     Хендлер нажатия кнопки Видео.
 
-    :param callback:
+    :param ctx:
     :param state:
     :return:
     """
     keyboard = create_keyboard(*video_menu_default)
     await state.set_state(MenuStates.video_menu_state)
-    await callback.message.edit_text(
+    await ctx.message.edit_text(
         text=LEXICON_RU['video_title'],
-        inline_message_id=callback.id,
+        inline_message_id=ctx.id,
         reply_markup=keyboard,
     )
 
 
 @router.callback_query(F.data == 'main_menu_tutors_btn')
-async def process_main_menu_tutors_click(callback: CallbackQuery, state: FSMContext):
+async def process_main_menu_tutors_click(ctx: CallbackQuery, state: FSMContext):
     """
     Хендлер нажатия кнопки Как пользоваться ботом.
 
-    :param callback:
+    :param ctx:
     :param state:
     :return:
     """
     buttons = config_ex['tutorial_links']
     keyboard = create_web_app_keyboard(buttons)
     await state.set_state(MenuStates.tutor_menu_state)
-    await callback.message.edit_text(
+    await ctx.message.edit_text(
         text=LEXICON_RU['tutors_menu_title'],
-        inline_message_id=callback.id,
+        inline_message_id=ctx.id,
         reply_markup=keyboard,
     )
