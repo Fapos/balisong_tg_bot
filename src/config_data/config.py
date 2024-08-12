@@ -24,6 +24,7 @@ class TgBot:
 class Config:
     tg_bot: TgBot
     db: DatabaseConfig
+    redis: str
 
 
 # Создаем функцию, которая будет читать файл .env и возвращать
@@ -41,7 +42,8 @@ def load_config(path: str | None = None) -> Config:
             db_host=env('DB_HOST'),
             db_user=env('DB_USER'),
             db_password=env('DB_PASSWORD')
-        )
+        ),
+        redis=env('REDIS_ADDRESS')
     )
 
 

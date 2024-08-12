@@ -9,6 +9,8 @@ from src.config_data.config import config_ex
 from src.keyboards.main_menu import create_keyboard, create_keyboard_from_dict, create_web_app_keyboard
 from src.lexicon.lexicon_ru import LEXICON_RU
 
+from src.utils.utils import get_redis
+
 from src.keyboards.menu_buttons import (
     main_menu_default, profile_menu_default,
     email_menu_default, audio_menu_default,
@@ -97,7 +99,7 @@ async def process_cancel_click(ctx: CallbackQuery, state: FSMContext):
 
     if await state.get_state() in EMAILS_PRESET_SETTINGS_CANCEL_BUTTON_STATES:
         await state.set_state(EmailsStates.emails_presets_settings_state)
-        redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+        redis = await get_redis()
         preset_name = bytes.decode(await redis.get(f'{ctx.from_user.id}_current_email_preset_name'), encoding='utf-8')
         await redis.close()
         keyboard = create_keyboard(*email_preset_settings_menu_default)

@@ -5,6 +5,7 @@ from datetime import datetime
 import aioredis
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
+from src.utils.utils import get_redis
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ class CheckKeyboardLifetimeOuterMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: Dict[str, Any]
     ) -> Any:
-        redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+        redis = await get_redis()
         try:
             last_update = await redis.get(f'{event.from_user.id}_last_keyboard_update')
         except KeyError:

@@ -12,6 +12,8 @@ from aiogram.fsm.context import FSMContext
 from src.keyboards.main_menu import create_keyboard, create_keyboard_from_dict, create_keyboard_tuple
 from src.lexicon.lexicon_ru import LEXICON_RU
 
+from src.utils.utils import get_redis
+
 from src.keyboards.menu_buttons import (
     email_menu_default, email_list_menu_default, cancel_menu, email_presets_menu_default,
     email_preset_settings_menu_default, back_menu, email_on_notify_audios, email_on_notify_start,
@@ -92,7 +94,7 @@ async def process_emails_list_query(ctx: CallbackQuery, state: FSMContext):
     :return:
     """
     # keyboard = create_keyboard(*email_list_menu_default)
-    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    redis = await get_redis()
     await state.set_state(EmailsStates.emails_show_list_state)
 
     _emails = await get_emails_list(ctx)
@@ -139,7 +141,7 @@ async def process_emails_list_next(ctx: CallbackQuery, state: FSMContext):
     """
     curr_state = await state.get_state()
 
-    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    redis = await get_redis()
 
     if curr_state == EmailsStates.emails_show_list_state:
         _cur_page = int(await redis.get(f'{ctx.from_user.id}_emails_list_page'))
@@ -176,7 +178,7 @@ async def process_emails_list_prev(ctx: CallbackQuery, state: FSMContext):
     """
     await state.set_state(EmailsStates.emails_show_list_state)
 
-    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    redis = await get_redis()
     _cur_page = int(await redis.get(f'{ctx.from_user.id}_emails_list_page'))
     _emails_str = bytes.decode(await redis.get(f'{ctx.from_user.id}_emails_list'), encoding='utf-8')
     _emails = json.loads(_emails_str.replace('\'', '"'))
@@ -269,7 +271,7 @@ async def process_emails_presets_show(ctx: Union[CallbackQuery, Message], state:
 async def process_emails_presets_settings_show(ctx: CallbackQuery, state: FSMContext):
     await state.set_state(EmailsStates.emails_presets_settings_state)
     keyboard = create_keyboard(*email_preset_settings_menu_default)
-    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    redis = await get_redis()
     await redis.set(f'{ctx.from_user.id}_current_email_preset_id', ctx.data.split(":")[1])
     await redis.set(f'{ctx.from_user.id}_current_email_preset_name', ctx.data.split(":")[2])
     await redis.close()
@@ -286,7 +288,7 @@ async def process_emails_presets_settings_show(ctx: CallbackQuery, state: FSMCon
 async def process_emails_preset_add_message_title_query(ctx: CallbackQuery, state: FSMContext):
     keyboard = create_keyboard(*cancel_menu)
     await state.set_state(EmailsStates.emails_presets_add_title)
-    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    redis = await get_redis()
 
     preset_id = int(bytes.decode(await redis.get(f'{ctx.from_user.id}_current_email_preset_id'), encoding='utf-8'))
     current_title = await get_current_preset_message_title(ctx, preset_id)
@@ -306,7 +308,7 @@ async def process_emails_preset_add_message_title_query(ctx: CallbackQuery, stat
 async def process_emails_preset_add_message_title(ctx: Message, state: FSMContext):
     if isinstance(ctx.text, str):
         keyboard = create_keyboard(*email_preset_settings_menu_default)
-        redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+        redis = await get_redis()
 
         preset_id = int(bytes.decode(await redis.get(f'{ctx.from_user.id}_current_email_preset_id'), encoding='utf-8'))
         try:
@@ -331,7 +333,7 @@ async def process_emails_preset_add_message_title(ctx: Message, state: FSMContex
 async def process_emails_preset_add_message_text_query(ctx: CallbackQuery, state: FSMContext):
     keyboard = create_keyboard(*cancel_menu)
     await state.set_state(EmailsStates.emails_presets_add_text)
-    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    redis = await get_redis()
 
     preset_id = int(bytes.decode(await redis.get(f'{ctx.from_user.id}_current_email_preset_id'), encoding='utf-8'))
     current_text = await get_current_preset_message_text(ctx, preset_id)
@@ -351,7 +353,7 @@ async def process_emails_preset_add_message_text_query(ctx: CallbackQuery, state
 async def process_emails_preset_add_message_text(ctx: Message, state: FSMContext):
     if isinstance(ctx.text, str):
         keyboard = create_keyboard(*email_preset_settings_menu_default)
-        redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+        redis = await get_redis()
 
         preset_id = int(bytes.decode(await redis.get(f'{ctx.from_user.id}_current_email_preset_id'), encoding='utf-8'))
         try:
@@ -376,7 +378,7 @@ async def process_emails_preset_add_message_text(ctx: Message, state: FSMContext
 async def process_emails_preset_add_emails_query(ctx: CallbackQuery, state: FSMContext):
     keyboard = create_keyboard(*cancel_menu)
     await state.set_state(EmailsStates.emails_presets_add_emails)
-    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    redis = await get_redis()
 
     preset_id = int(bytes.decode(await redis.get(f'{ctx.from_user.id}_current_email_preset_id'), encoding='utf-8'))
     current_text = await get_current_preset_emails(ctx, preset_id)
@@ -419,7 +421,7 @@ async def process_emails_smtp_settings_query(ctx: CallbackQuery, state: FSMConte
 async def process_emails_smtp_add_email(ctx: Message, state: FSMContext):
     if isinstance(ctx.text, str):
         keyboard = create_keyboard(*cancel_menu)
-        redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+        redis = await get_redis()
         await redis.set(f'{ctx.from_user.id}_smtp_email', ctx.text.strip())
         await state.set_state(EmailsStates.emails_smtp_add_password)
         await ctx.answer(
@@ -434,7 +436,7 @@ async def process_emails_smtp_add_password(ctx: Message, state: FSMContext):
         keyboard = create_keyboard(*email_menu_default)
         await state.set_state(MenuStates.emails_menu_state)
 
-        redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+        redis = await get_redis()
         email = bytes.decode(await redis.get(f'{ctx.from_user.id}_smtp_email'), encoding='utf-8')
 
         try:
@@ -458,7 +460,7 @@ async def process_emails_smtp_add_password(ctx: Message, state: FSMContext):
 async def process_emails_add_emails(ctx: Message, state: FSMContext):
     if isinstance(ctx.text, str):
         keyboard = create_keyboard(*email_preset_settings_menu_default)
-        redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+        redis = await get_redis()
 
         preset_id = int(
             bytes.decode(await redis.get(f'{ctx.from_user.id}_current_email_preset_id'), encoding='utf-8'))
@@ -505,7 +507,7 @@ async def process_emails_on_notify(ctx: CallbackQuery, state: FSMContext):
     _audios = await get_audio_list(ctx)
     print(_audios)
     if isinstance(_audios, dict):
-        redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+        redis = await get_redis()
         _json_dumps = json.dumps(_audios)
         await redis.set(f'{ctx.from_user.id}_audios_list', _json_dumps)
         await redis.delete(f'{ctx.from_user.id}_checked_audios_list')
@@ -529,7 +531,7 @@ async def process_emails_on_notify(ctx: CallbackQuery, state: FSMContext):
 
 @router.callback_query(F.data.startswith('emails_audios_id'))
 async def process_emails_audios_generate_list(ctx: CallbackQuery, state: FSMContext):
-    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    redis = await get_redis()
     _audio_list = bytes.decode(await redis.get(f'{ctx.from_user.id}_audios_list'), encoding='utf-8')
     _audios = json.loads(_audio_list)
     _checked_raw = await redis.get(f'{ctx.from_user.id}_checked_audios_list')
@@ -570,7 +572,7 @@ async def process_emails_on_notify_select_preset_query(ctx: CallbackQuery, state
     :param state:
     :return:
     """
-    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    redis = await get_redis()
     _checked_raw = await redis.get(f'{ctx.from_user.id}_checked_audios_list')
     if isinstance(_checked_raw, NoneType):
         await ctx.answer(LEXICON_RU['emails_audios_selected_empty_label'])
@@ -599,7 +601,7 @@ async def process_emails_on_notify_select_preset_query(ctx: CallbackQuery, state
 @router.callback_query(F.data.startswith('emails_notify_preset_id'))
 async def process_emails_audios_generate_list(ctx: CallbackQuery, state: FSMContext):
     await state.set_state(EmailsStates.emails_on_notify)
-    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    redis = await get_redis()
     _audio_list = bytes.decode(await redis.get(f'{ctx.from_user.id}_audios_list'), encoding='utf-8')
     _audios = json.loads(_audio_list)
     _checked_raw = await redis.get(f'{ctx.from_user.id}_checked_audios_list')
@@ -635,7 +637,7 @@ async def process_emails_on_notify_start(ctx: CallbackQuery, state: FSMContext):
     :param state:
     :return:
     """
-    redis = await aioredis.from_url('redis://127.0.0.1', db=0)
+    redis = await get_redis()
     _checked_raw = await redis.get(f'{ctx.from_user.id}_checked_audios_list')
     if not isinstance(_checked_raw, NoneType):
         _checked_audios_list = bytes.decode(_checked_raw, encoding='utf-8')
